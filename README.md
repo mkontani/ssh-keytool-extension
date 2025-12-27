@@ -1,6 +1,8 @@
-# SSH Keytool Extension
+# <img src="assets/logo.png" width="48" height="48" alt="Logo" style="vertical-align: middle; margin-right: 8px;"> SSH Keytool Extension
 
 A secure, offline-capable Chrome Extension for generating SSH key pairs and deriving public keys directly in your browser.
+
+![SSH Keytool Screenshot](assets/screenshot.png)
 
 ## Features
 
