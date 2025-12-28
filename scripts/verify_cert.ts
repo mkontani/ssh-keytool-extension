@@ -13,8 +13,10 @@ async function run() {
         const certPem = `ssh-ed25519-cert-v01@openssh.com AAAAIHNzaC1lZDI1NTE5LWNlcnQtdjAxQG9wZW5zc2guY29tAAAAIKqNq0idJU1gKMyA1JmyVYSykmH/SdJyVMoFShz5XkvnAAAAIAMOq8+NF7tlTzOwuGa2u6O4SqS364cXXJqfGYoGIILNAAAAAAAAAAAAAAABAAAAB3Rlc3RfaWQAAAAcAAAACnByaW5jaXBhbDEAAAAKcHJpbmNpcGFsMgAAAABpUNHsAAAAAGlSI6cAAAAAAAAAggAAABVwZXJtaXQtWDExLWZvcndhcmRpbmcAAAAAAAAAF3Blcm1pdC1hZ2VudC1mb3J3YXJkaW5nAAAAAAAAABZwZXJtaXQtcG9ydC1mb3J3YXJkaW5nAAAAAAAAAApwZXJtaXQtcHR5AAAAAAAAAA5wZXJtaXQtdXNlci1yYwAAAAAAAAAAAAAAMwAAAAtzc2gtZWQyNTUxOQAAACDuES2iX91p8YY3Wj04aQiM9YbHvs77/hP3+2VPtahbRwAAAFMAAAALc3NoLWVkMjU1MTkAAABA1Hpmq/lzXuan5AXB3Gql1jF4mQ8lcHBOM3W5QrZMwbvEF7mJ5YLINw+mK6OEtQNJF8VSvFH/9ImpRbpzcXvDAw==`;
 
         console.log('Parsing test cert...');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const rawCert: any = sshpk.parseCertificate(certPem, 'openssh');
         console.log('Number of subjects:', rawCert.subjects.length);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         rawCert.subjects.forEach((s: any, i: number) => {
             console.log(`Subject ${i} type:`, s.type);
             console.log(`Subject ${i} components:`, JSON.stringify(s.components, null, 2));

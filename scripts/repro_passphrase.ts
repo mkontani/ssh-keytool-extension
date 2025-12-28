@@ -14,6 +14,7 @@ async function run() {
         // Try parsing without passphrase - should fail if encrypted
         sshpk.parsePrivateKey(rsa.privateKey, 'auto');
         console.error('FAIL: RSA Private Key parsed WITHOUT passphrase (it is NOT encrypted)');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
         if (e.name === 'KeyEncryptedError') {
             console.log('PASS: RSA Key is encrypted.');

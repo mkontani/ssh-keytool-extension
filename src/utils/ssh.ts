@@ -10,7 +10,8 @@ export type KeyType = 'rsa' | 'ed25519' | 'ecdsa';
 // Helper to access Web Crypto API (browser or Node)
 const getCrypto = () => {
     if (typeof window !== 'undefined' && window.crypto) return window.crypto;
-    // @ts-ignore
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - Web Crypto API might be on global in some environments
     if (typeof crypto !== 'undefined') return crypto;
     throw new Error('Web Crypto API not available');
 };
@@ -69,17 +70,18 @@ export const generateKeyPair = async (
         const privateKeyPEM = toPem(privateKeyDER, "PRIVATE KEY");
         // Parse back with sshpk to get sshpk object
         key = sshpk.parsePrivateKey(privateKeyPEM, 'pkcs8');
+    } else if (type === 'ecdsa') {
+        const ecdsaOpts: { curve: string } = { curve: 'nistp256' };
+        if (size === 384) ecdsaOpts.curve = 'nistp384';
+        else if (size === 521) ecdsaOpts.curve = 'nistp521';
+
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore - type mismatch due to restrictive sshpk overloads
+        key = sshpk.generatePrivateKey('ecdsa', ecdsaOpts);
     } else {
-        // ECDSA / ED25519 supported by sshpk generation
-        let opts: any = {};
-        if (type === 'ecdsa') {
-            if (size === 256) opts.curve = 'nistp256';
-            else if (size === 384) opts.curve = 'nistp384';
-            else if (size === 521) opts.curve = 'nistp521';
-            else opts.curve = 'nistp256';
-        }
-        // sshpk.generatePrivateKey expects specific type strings or uses defaults
-        key = sshpk.generatePrivateKey(type as any, opts);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore - type mismatch due to restrictive sshpk overloads
+        key = sshpk.generatePrivateKey('ed25519', {});
     }
 
     let privateKey: string;
@@ -121,24 +123,41 @@ export const parseCertificate = (certPEM: string): CertificateInfo => {
     try {
         const cert = sshpk.parseCertificate(certPEM, 'openssh');
 
-        // Type casting to any to access potentially hidden SSH-specific props
-        const raw: any = cert;
+        // Type casting to unknown then to a custom shape to access SSH-specific props not in @types/sshpk
+        const raw = cert as unknown as {
+            type: string;
+            subjects: Array<{
+                uid?: string;
+                components: Array<{ name: string; value: { toString: () => string } }>;
+                principals?: string[];
+                comment?: string;
+            }>;
+            signatures: {
+                openssh?: {
+                    keyId?: string;
+                    exts?: Array<{ name: string; critical: boolean; value: boolean | string; data?: Buffer }>;
+                };
+            };
+            subjectKey?: { type: string };
+            issuerKey?: { fingerprint: (alg: string) => { toString: () => string } };
+        };
         const openssh = raw.signatures && raw.signatures.openssh ? raw.signatures.openssh : {};
 
         // Extract principals: sshpk maps them to multiple 'subjects' for multiple principals
         let principals: string[] = [];
         if (raw.subjects && Array.isArray(raw.subjects)) {
             for (const s of raw.subjects) {
-                const subject: any = s;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const subject = s as any;
                 if (subject.uid) {
-                    principals.push(subject.uid);
+                    principals.push(subject.uid as string);
                 } else if (subject.components && Array.isArray(subject.components)) {
                     const uids = subject.components
-                        .filter((c: any) => c.name === 'uid')
-                        .map((c: any) => c.value.toString());
+                        .filter((c: { name: string }) => c.name === 'uid')
+                        .map((c: { value: { toString: () => string } }) => c.value.toString());
                     principals.push(...uids);
                 } else if (subject.principals && Array.isArray(subject.principals)) {
-                    principals.push(...subject.principals);
+                    principals.push(...(subject.principals as string[]));
                 }
             }
         }
@@ -168,7 +187,7 @@ export const parseCertificate = (certPEM: string): CertificateInfo => {
 
         return {
             type: typeStr,
-            keyId: openssh.keyId || (raw.subjects[0] && (raw.subjects[0] as any).comment) || '',
+            keyId: openssh.keyId || (raw.subjects[0] && (raw.subjects[0] as { comment?: string }).comment) || '',
             validAfter: cert.validFrom,
             validBefore: cert.validUntil,
             principals: principals,
