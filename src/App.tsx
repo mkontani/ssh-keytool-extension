@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { generateKeyPair, derivePublicKey } from './utils/ssh';
+import { generateKeyPair, derivePublicKey, parseCertificate, type CertificateInfo } from './utils/ssh';
 import type { KeyType } from './utils/ssh';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'generate' | 'derive'>('generate');
+  const [activeTab, setActiveTab] = useState<'generate' | 'derive' | 'inspect'>('generate');
 
   // Generation State
   const [keyType, setKeyType] = useState<KeyType>('rsa');
@@ -18,6 +18,11 @@ function App() {
   const [derivePassphrase, setDerivePassphrase] = useState('');
   const [deriveResult, setDeriveResult] = useState<string | null>(null);
   const [deriveError, setDeriveError] = useState<string | null>(null);
+
+  // Inspector State
+  const [inspectCert, setInspectCert] = useState('');
+  const [inspectResult, setInspectResult] = useState<CertificateInfo | null>(null);
+  const [inspectError, setInspectError] = useState<string | null>(null);
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -111,6 +116,13 @@ function App() {
             }`}
         >
           Derive Public Key
+        </button>
+        <button
+          onClick={() => setActiveTab('inspect')}
+          className={`flex-1 py-1 px-3 rounded text-sm font-medium transition-colors ${activeTab === 'inspect' ? 'bg-gray-700 text-white shadow' : 'text-gray-400 hover:text-white'
+            }`}
+        >
+          Inspect Cert
         </button>
       </div>
 
@@ -255,6 +267,87 @@ function App() {
                   value={deriveResult}
                   className="w-full h-24 p-2 text-xs font-mono bg-gray-950 rounded border border-gray-800 focus:border-gray-700 outline-none resize-none text-gray-400"
                 />
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'inspect' && (
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-400">SSH Certificate</label>
+              <textarea
+                value={inspectCert}
+                onChange={(e) => {
+                  setInspectCert(e.target.value);
+                  try {
+                    if (!e.target.value.trim()) {
+                      setInspectResult(null);
+                      setInspectError(null);
+                      return;
+                    }
+                    const info = parseCertificate(e.target.value);
+                    setInspectResult(info);
+                    setInspectError(null);
+                  } catch (err: any) {
+                    setInspectResult(null);
+                    setInspectError('Invalid certificate');
+                  }
+                }}
+                className="w-full h-32 p-2 text-xs font-mono bg-gray-800 rounded border border-gray-700 focus:border-blue-500 outline-none resize-none"
+                placeholder="Paste SSH Certificate (ssh-rsa-cert...)"
+              />
+            </div>
+
+            {inspectError && (
+              <div className="p-3 bg-red-900/50 border border-red-800 rounded text-red-200 text-sm">
+                {inspectError}
+              </div>
+            )}
+
+            {inspectResult && (
+              <div className="flex flex-col gap-2 p-3 bg-gray-800 rounded border border-gray-700 text-sm animate-in fade-in slide-in-from-bottom-2">
+                <div className="grid grid-cols-[100px_1fr] gap-2 border-b border-gray-700 pb-2 mb-2">
+                  <span className="text-gray-400">Type</span>
+                  <span className="font-mono break-all">{inspectResult.type}</span>
+
+                  <span className="text-gray-400">Key ID</span>
+                  <span className="font-mono">{inspectResult.keyId}</span>
+
+                  <span className="text-gray-400">Principals</span>
+                  <span className="font-mono">{inspectResult.principals.length ? inspectResult.principals.join(', ') : '(none)'}</span>
+
+                  <span className="text-gray-400">Valid</span>
+                  <span className="font-mono text-xs">
+                    {inspectResult.validAfter.toLocaleString()} - {inspectResult.validBefore.toLocaleString()}
+                  </span>
+                </div>
+
+                {Object.keys(inspectResult.extensions).length > 0 && (
+                  <div className="mb-2">
+                    <span className="text-xs font-medium text-gray-400 block mb-1">Extensions</span>
+                    <div className="flex flex-wrap gap-1">
+                      {Object.entries(inspectResult.extensions).map(([k, v]) => (
+                        <span key={k} className="px-2 py-1 bg-gray-700 rounded text-xs">
+                          {k}{v && v !== 'true' ? `=${v}` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {Object.keys(inspectResult.criticalOptions).length > 0 && (
+                  <div className="mb-2">
+                    <span className="text-xs font-medium text-amber-500/80 block mb-1">Critical Options</span>
+                    <div className="flex flex-wrap gap-1">
+                      {Object.entries(inspectResult.criticalOptions).map(([k, v]) => (
+                        <span key={k} className="px-2 py-1 bg-amber-900/40 border border-amber-900/60 rounded text-xs text-amber-200">
+                          {k}{v && v !== 'true' ? `=${v}` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

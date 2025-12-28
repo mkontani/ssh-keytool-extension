@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "SSH Keytool",
-    "version": "1.0.0",
-    "description": "Generate SSH key pairs and derive public keys.",
+    "version": "1.1.0",
+    "description": "Generate SSH key pairs and derive public keys and inspect SSH certificates.",
     "action": {
         "default_popup": "index.html",
         "default_icon": {
