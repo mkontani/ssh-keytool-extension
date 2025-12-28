@@ -123,20 +123,28 @@ export const parseCertificate = (certPEM: string): CertificateInfo => {
 
         // Type casting to any to access potentially hidden SSH-specific props
         const raw: any = cert;
-        const subject: any = raw.subjects[0];
         const openssh = raw.signatures && raw.signatures.openssh ? raw.signatures.openssh : {};
 
-        // Extract principals: sshpk maps them to 'uid' component of subject for user certs
+        // Extract principals: sshpk maps them to multiple 'subjects' for multiple principals
         let principals: string[] = [];
-        if (subject.uid) {
-            principals = [subject.uid];
-        } else if (subject.components) {
-            // Fallback: try to find 'uid' component
-            const uidComp = subject.components.find((c: any) => c.name === 'uid');
-            if (uidComp) principals = [uidComp.value];
-        } else if (subject.principals) {
-            principals = subject.principals;
+        if (raw.subjects && Array.isArray(raw.subjects)) {
+            for (const s of raw.subjects) {
+                const subject: any = s;
+                if (subject.uid) {
+                    principals.push(subject.uid);
+                } else if (subject.components && Array.isArray(subject.components)) {
+                    const uids = subject.components
+                        .filter((c: any) => c.name === 'uid')
+                        .map((c: any) => c.value.toString());
+                    principals.push(...uids);
+                } else if (subject.principals && Array.isArray(subject.principals)) {
+                    principals.push(...subject.principals);
+                }
+            }
         }
+
+        // Remove duplicates and clean up
+        principals = [...new Set(principals)];
 
         // Extensions and Critical Options
         const exts: Record<string, string> = {};
@@ -160,7 +168,7 @@ export const parseCertificate = (certPEM: string): CertificateInfo => {
 
         return {
             type: typeStr,
-            keyId: openssh.keyId || subject.comment || '',
+            keyId: openssh.keyId || (raw.subjects[0] && (raw.subjects[0] as any).comment) || '',
             validAfter: cert.validFrom,
             validBefore: cert.validUntil,
             principals: principals,
