@@ -1,12 +1,13 @@
 {
   "name": "ssh-keytool-extension",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "vite-node scripts/verify.ts && vite-node scripts/verify_cert.ts",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -31,6 +32,7 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
+    "vite-node": "^5.2.0",
     "vite-plugin-node-polyfills": "^0.24.0"
   }
 }

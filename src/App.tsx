@@ -43,8 +43,8 @@ function App() {
       try {
         const res = await generateKeyPair(keyType, keySize, genPassphrase);
         setGenResult(res);
-      } catch (e: any) {
-        setGenError(e.message || 'Generation failed');
+      } catch (e: unknown) {
+        setGenError((e as Error).message || 'Generation failed');
       } finally {
         setIsGenerating(false);
       }
@@ -61,8 +61,8 @@ function App() {
       }
       const res = derivePublicKey(deriveKey, derivePassphrase);
       setDeriveResult(res);
-    } catch (e: any) {
-      setDeriveError(e.message || 'Derivation failed');
+    } catch (e: unknown) {
+      setDeriveError((e as Error).message || 'Derivation failed');
     }
   };
 
@@ -289,7 +289,7 @@ function App() {
                     const info = parseCertificate(e.target.value);
                     setInspectResult(info);
                     setInspectError(null);
-                  } catch (err: any) {
+                  } catch {
                     setInspectResult(null);
                     setInspectError('Invalid certificate');
                   }
