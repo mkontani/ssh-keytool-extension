@@ -1,6 +1,6 @@
 # <img src="assets/logo.png" width="48" height="48" alt="Logo" style="vertical-align: middle; margin-right: 8px;"> SSH Keytool Extension
 
-A secure, offline-capable Chrome Extension for generating SSH key pairs and deriving public keys directly in your browser.
+A secure, offline-capable Chrome Extension for generating SSH key pairs and deriving public keys and inspecting SSH certificates directly in your browser.
 
 ![SSH Keytool Screenshot](assets/screenshot.png)
 
@@ -9,8 +9,11 @@ A secure, offline-capable Chrome Extension for generating SSH key pairs and deri
 - **Generate SSH Keys**: Supports RSA (2048/4096-bit), ECDSA (nistp256/384/521), and ED25519.
 - **Passphrase Protection**: Encrypt private keys with a passphrase using robust OpenSSH encryption.
 - **Public Key Derivation**: Derive the associated public key from an existing private key.
+- **SSH Certificate Inspection**: Inspect details of SSH certificates (Key ID, Principals, Validity, Extensions, etc.).
 - **Offline & Secure**: All cryptographic operations happen locally within the extension. No keys are ever sent to any server.
 - **Modern UI**: Clean, responsive interface with Dark Mode support.
+
+![Inspect Cert Screenshot](assets/inspect_cert_screenshot.png)
 
 ## Installation
 
@@ -36,6 +39,11 @@ A secure, offline-capable Chrome Extension for generating SSH key pairs and deri
 2. Paste your private key (OpenSSH/PEM format).
 3. If the key is encrypted, enter the passphrase.
 4. Click **Derive Public Key**.
+
+### Inspecting SSH Certificates
+1. Select the "Inspect Cert" tab.
+2. Paste your SSH certificate (e.g., `ssh-rsa-cert-v01@openssh.com ...`).
+3. View parsed details such as Type, Key ID, Valid Principals, Validity Period, Extensions, and Critical Options.
 
 ## Development
 

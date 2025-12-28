@@ -105,3 +105,71 @@ export const derivePublicKey = (privateKeyPEM: string, passphrase?: string): str
         throw new Error('Failed to parse private key. Check format and passphrase.');
     }
 };
+
+export interface CertificateInfo {
+    type: string;
+    keyId: string;
+    validAfter: Date;
+    validBefore: Date;
+    principals: string[];
+    extensions: Record<string, string>;
+    criticalOptions: Record<string, string>;
+    signatureKey: string;
+}
+
+export const parseCertificate = (certPEM: string): CertificateInfo => {
+    try {
+        const cert = sshpk.parseCertificate(certPEM, 'openssh');
+
+        // Type casting to any to access potentially hidden SSH-specific props
+        const raw: any = cert;
+        const subject: any = raw.subjects[0];
+        const openssh = raw.signatures && raw.signatures.openssh ? raw.signatures.openssh : {};
+
+        // Extract principals: sshpk maps them to 'uid' component of subject for user certs
+        let principals: string[] = [];
+        if (subject.uid) {
+            principals = [subject.uid];
+        } else if (subject.components) {
+            // Fallback: try to find 'uid' component
+            const uidComp = subject.components.find((c: any) => c.name === 'uid');
+            if (uidComp) principals = [uidComp.value];
+        } else if (subject.principals) {
+            principals = subject.principals;
+        }
+
+        // Extensions and Critical Options
+        const exts: Record<string, string> = {};
+        const opts: Record<string, string> = {};
+
+        if (openssh.exts) {
+            for (const ext of openssh.exts) {
+                if (ext.critical) {
+                    opts[ext.name] = ext.value === true ? 'true' : ext.data ? ext.data.toString() : '';
+                } else {
+                    exts[ext.name] = ext.value === true ? 'true' : ext.data ? ext.data.toString() : '';
+                }
+            }
+        }
+
+        // Type reconstruction (rough guess if not available)
+        let typeStr = raw.type || 'unknown';
+        if (raw.subjectKey && raw.subjectKey.type) {
+            typeStr = raw.subjectKey.type + '-cert-v01@openssh.com';
+        }
+
+        return {
+            type: typeStr,
+            keyId: openssh.keyId || subject.comment || '',
+            validAfter: cert.validFrom,
+            validBefore: cert.validUntil,
+            principals: principals,
+            extensions: exts,
+            criticalOptions: opts,
+            signatureKey: cert.issuerKey ? cert.issuerKey.fingerprint('sha256').toString() : 'unknown'
+        };
+    } catch (e) {
+        console.error(e);
+        throw new Error('Failed to parse certificate.');
+    }
+};
