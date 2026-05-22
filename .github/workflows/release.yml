@@ -27,14 +27,16 @@ jobs:
         run: npm run build
 
       - name: Zip extension
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
           cd dist
-          zip -r ../ssh-keytool-extension.zip .
+          zip -r "../ssh-keytool-extension-${TAG_NAME}.zip" .
           cd ..
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v1
         with:
-          files: ssh-keytool-extension.zip
+          files: ssh-keytool-extension-${{ github.event.release.tag_name }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
