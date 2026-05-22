@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { generateKeyPair, derivePublicKey, parseCertificate, type CertificateInfo } from './utils/ssh';
 import type { KeyType } from './utils/ssh';
+import { ConvertTab } from './components/ConvertTab';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'generate' | 'derive' | 'inspect'>('generate');
+  const [activeTab, setActiveTab] = useState<'generate' | 'derive' | 'inspect' | 'convert'>('generate');
 
   // Generation State
   const [keyType, setKeyType] = useState<KeyType>('rsa');
@@ -123,6 +124,13 @@ function App() {
             }`}
         >
           Inspect Cert
+        </button>
+        <button
+          onClick={() => setActiveTab('convert')}
+          className={`flex-1 py-1 px-3 rounded text-sm font-medium transition-colors ${activeTab === 'convert' ? 'bg-gray-700 text-white shadow' : 'text-gray-400 hover:text-white'
+            }`}
+        >
+          Convert
         </button>
       </div>
 
@@ -271,6 +279,8 @@ function App() {
             )}
           </div>
         )}
+
+        {activeTab === 'convert' && <ConvertTab />}
 
         {activeTab === 'inspect' && (
           <div className="flex flex-col gap-4">
