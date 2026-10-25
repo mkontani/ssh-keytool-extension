@@ -97,7 +97,7 @@ function App() {
     <div className="w-full h-full p-4 flex flex-col gap-4 text-gray-200">
       <header className="flex items-center justify-between border-b border-gray-700 pb-2">
         <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="Logo" className="w-6 h-6" />
+          <img src="logo.png" alt="Logo" className="w-6 h-6" />
           <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-400">
             SSH Keytool
           </h1>
@@ -114,17 +114,19 @@ function App() {
         </button>
         <button
           onClick={() => setActiveTab('derive')}
+          title="Derive Public Key"
           className={`flex-1 py-1 px-3 rounded text-sm font-medium transition-colors ${activeTab === 'derive' ? 'bg-gray-700 text-white shadow' : 'text-gray-400 hover:text-white'
             }`}
         >
-          Derive Public Key
+          Derive
         </button>
         <button
           onClick={() => setActiveTab('inspect')}
+          title="Inspect SSH Certificate"
           className={`flex-1 py-1 px-3 rounded text-sm font-medium transition-colors ${activeTab === 'inspect' ? 'bg-gray-700 text-white shadow' : 'text-gray-400 hover:text-white'
             }`}
         >
-          Inspect Cert
+          Cert
         </button>
         <button
           onClick={() => setActiveTab('convert')}

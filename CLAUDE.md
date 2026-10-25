@@ -52,6 +52,7 @@ There is no Jest/Vitest harness — verification is `assert`-based scripts run t
 
 - `.github/workflows/ci.yml` — lint → test → build on push/PR to `main`.
 - `.github/workflows/deploy-pages.yml` — publishes `dist/` to GitHub Pages on push to `main`.
-- `.github/workflows/release.yml` — on GitHub Release creation, builds and uploads `ssh-keytool-extension.zip` (the loadable unpacked extension) as a release asset.
+- `.github/workflows/release.yml` — on GitHub Release creation, builds and uploads `ssh-keytool-extension-<tag>.zip` (the loadable unpacked extension) as a release asset.
+- `.github/workflows/auto-release.yml` — when `public/manifest.json` changes on `main` and its version has no tag yet, runs lint/test/build and creates the `v<version>` release with the zip. **Merging a version bump publishes a release.**
 
-The manifest `version` in `public/manifest.json` and `package.json` `version` are tracked together — bump both for releases.
+The manifest `version` in `public/manifest.json` and `package.json` `version` are tracked together — bump both for releases. Chrome Web Store screenshots and promo tiles are generated from the real UI; see `assets/webstore/src/README.md`.

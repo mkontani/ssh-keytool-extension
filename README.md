@@ -2,7 +2,7 @@
 
 A secure, offline-capable Chrome Extension for generating SSH key pairs, deriving public keys, inspecting SSH certificates, and converting private keys between OpenSSH, PEM (PKCS#1/PKCS#8), and PuTTY PPK formats — directly in your browser.
 
-![SSH Keytool Screenshot](assets/screenshot.png)
+![SSH Keytool: generate SSH keys in your browser](assets/webstore/01-generate.png)
 
 ## Features
 
@@ -15,7 +15,7 @@ A secure, offline-capable Chrome Extension for generating SSH key pairs, derivin
 - **Offline & Secure**: All cryptographic operations happen locally within the extension. No keys are ever sent to any server.
 - **Modern UI**: Clean, responsive interface with Dark Mode support.
 
-![Inspect Cert Screenshot](assets/inspect_cert_screenshot.png)
+![SSH Keytool: build commands for FIDO security keys](assets/webstore/02-fido-command-builder.png)
 
 ## Installation
 
@@ -37,13 +37,13 @@ A secure, offline-capable Chrome Extension for generating SSH key pairs, derivin
 6. Copy the private and public keys to your clipboard.
 
 ### Deriving Public Keys
-1. Select the "Derive Public Key" tab.
+1. Select the "Derive" tab.
 2. Paste your private key (OpenSSH/PEM format).
 3. If the key is encrypted, enter the passphrase.
 4. Click **Derive Public Key**.
 
 ### Inspecting SSH Certificates
-1. Select the "Inspect Cert" tab.
+1. Select the "Cert" tab.
 2. Paste your SSH certificate (e.g., `ssh-rsa-cert-v01@openssh.com ...`).
 3. View parsed details such as Type, Key ID, Valid Principals, Validity Period, Extensions, and Critical Options.
 
@@ -79,7 +79,7 @@ Notes:
 - A FIDO private key file is only a handle: signing still requires the physical security key.
 - macOS's built-in `ssh-keygen` has no FIDO support (`No FIDO SecurityKeyProvider specified`); use a FIDO-enabled OpenSSH such as Homebrew's (`brew install openssh`).
 - Encrypted FIDO key files are supported with the `aes128/192/256-ctr` and `aes128/192/256-cbc` ciphers (`ssh-keygen`'s default is `aes256-ctr`). `chacha20-poly1305@openssh.com` and AES-GCM are not supported.
-- The "Derive Public Key" tab also accepts FIDO private key files.
+- The "Derive" tab also accepts FIDO private key files.
 - FIDO certificates (`sk-*-cert-v01@openssh.com`) are not supported yet.
 
 ## Development

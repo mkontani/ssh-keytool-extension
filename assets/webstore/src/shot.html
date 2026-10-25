@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Store screenshot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!--
+  Chrome Web Store screenshot (1280x800). Renders the real built extension
+  (./app = a copy of dist/) in an iframe at popup size, drives it into a scene,
+  and adds a caption. See README.md in this folder for how to capture.
+  Usage: shot.html?scene=generate|fido-builder|fido-inspect|convert|inspect-cert
+-->
+<style>
+  :root {
+    --bg-1: #0b1220;
+    --bg-2: #13243b;
+    --accent-1: #60a5fa;
+    --accent-2: #2dd4bf;
+    --text: #f8fafc;
+    --muted: #a5b4c8;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1280px; height: 800px; overflow: hidden; }
+  body {
+    font-family: Inter, system-ui, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(900px 600px at 85% 20%, rgba(45, 212, 191, 0.20), transparent 60%),
+      radial-gradient(800px 600px at 10% 90%, rgba(96, 165, 250, 0.22), transparent 60%),
+      linear-gradient(160deg, var(--bg-1), var(--bg-2));
+    position: relative;
+  }
+  .text { position: absolute; left: 88px; top: 0; bottom: 0; width: 560px; display: flex; flex-direction: column; justify-content: center; gap: 26px; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-icon {
+    width: 52px; height: 52px; border-radius: 13px; background: #eef7f6;
+    display: grid; place-items: center; box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
+  }
+  .brand-icon img { width: 44px; height: 44px; }
+  .brand-name { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+  .brand-name span { background: linear-gradient(90deg, var(--accent-1), var(--accent-2)); -webkit-background-clip: text; color: transparent; }
+  .eyebrow { font-size: 15px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-2); }
+  h1 { font-size: 54px; line-height: 1.08; font-weight: 800; letter-spacing: -0.025em; }
+  h1 em { font-style: normal; background: linear-gradient(90deg, var(--accent-1), var(--accent-2)); -webkit-background-clip: text; color: transparent; }
+  .sub { font-size: 23px; line-height: 1.45; color: var(--muted); }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip { font-size: 15px; font-weight: 600; padding: 8px 14px; border-radius: 999px; background: rgba(148, 163, 184, .12); border: 1px solid rgba(148, 163, 184, .22); color: #dbe5f1; }
+
+  /* zoom also scales right/top, so these are popup-space values (x1.25 on screen) */
+  .popup-wrap { position: absolute; right: 74px; top: 20px; zoom: 1.25; }
+  .popup {
+    width: 400px; height: 600px; border: 0; display: block;
+    border-radius: 14px; overflow: hidden; background: #1f2937;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, .55), 0 0 0 1px rgba(148, 163, 184, .18);
+  }
+</style>
+</head>
+<body>
+<div class="text" id="caption"></div>
+<div class="popup-wrap"><iframe class="popup" id="app" src="app/index.html"></iframe></div>
+<script>
+// Demo data only. The FIDO key is a key *handle* rebuilt from OpenSSH's public
+// test vector (regress/unittests/sshkey/testdata/ed25519_sk1) with comment
+// alice@laptop, application ssh:work and flags touch+PIN, then encrypted with
+// `ssh-keygen -p`. The certificate was signed by a throwaway CA.
+const DEMO_FIDO_KEY = `-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABDLqn+hHj
+wsAtqBx1nrXM/+AAAAIAAAAAEAAABOAAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29t
+AAAAICFo/k5LU8863u66YC9eUO2170QduohPURkQnbLa/dczAAAACHNzaDp3b3JrAAAAsK
+OIpb8bdkBi5LtzYbY7UiyDKwUGvtxiUK6kqpD0ImNWccNFn6YhmOP2FQ3ebmhlwO8I34ny
+eWtK2lIJtGPgVSG9xF0kCajF5PbtsmGaLzweyjD98FiiBFYUwScJu2eCJcqh3JfwGYGava
+ldkdBl2kM5ko+22LEfmEPHJ84TujNnxSttY2NbObX8FtpDzu+k2tZrDCRh/hJeOJCNEvv7
+my7cYcjqKXh7Ks+bR2hqMqdd
+-----END OPENSSH PRIVATE KEY-----`;
+const DEMO_FIDO_PASSPHRASE = 'demo-passphrase';
+const DEMO_CERT = 'ssh-rsa-cert-v01@openssh.com AAAAHHNzaC1yc2EtY2VydC12MDFAb3BlbnNzaC5jb20AAAAg0Q6G21kOLMkp/lGUQ7yu0WwQaIovACypG/b/WXcppvcAAAADAQABAAABgQDdw52nUTiLeoVsT5up2TwnIHg7EjPDD5DAcD3ZrUvgea65fJ/Eoj09jN+aQkGSaMhvj8QQjnRWkudSOhRHW7nuehHOlaMe7knbhgqkKjb166fKdzEUTlQlHOlz2WsqAMwiyJiNhLPVSzZoiiG01XYf03mq3Tn0GcFBT+P+54SVaQzGJMpzFrWBqHBaudeO5zCGPGBOO+MHn9QpAgasTLtSV79LWqfDe9t+k/9u9+Blu8oCHDGWedUgybjtC/qci5cJXUqKDZizdazadsdaPzBTfrTCirZV4ohl+086zT1/h48VDDVrwmsZdWV5yrJ5r1ubM951jKe3t9hPoqEWZ4st8LvW6lWjBUSYuT1OH+0jenWcEU+0J62DUfZkQNOWkeebqXAnaHbJuzmi9q7YN6WPbIwe1SAhcjf7RK+bIIFOKigtRrgm9iUD/YMF7CledgYH00URCsLKIw5TY/ZCN/kJctpz+tUqq/vgceHgaNKkAnSUn376X3QQYUHeoRZrqHMAAAAAAAAAAAAAAAEAAAARYWxpY2VAZXhhbXBsZS5jb20AAAATAAAABWFsaWNlAAAABmRlcGxveQAAAABq3j0QAAAAAGy+H08AAAAAAAAAggAAABVwZXJtaXQtWDExLWZvcndhcmRpbmcAAAAAAAAAF3Blcm1pdC1hZ2VudC1mb3J3YXJkaW5nAAAAAAAAABZwZXJtaXQtcG9ydC1mb3J3YXJkaW5nAAAAAAAAAApwZXJtaXQtcHR5AAAAAAAAAA5wZXJtaXQtdXNlci1yYwAAAAAAAAAAAAAAMwAAAAtzc2gtZWQyNTUxOQAAACAQ3Mz5XghRUpakjcNqcUSINoP1t7J0axonTAs5rcVUyAAAAFMAAAALc3NoLWVkMjU1MTkAAABAkoFCp3GgdFYeNbkEj/xXkNtB2QiXjfx3ogWK4EGHeLLTbUEyxcYQWNPEigHgluxr6xORBdnO2ZFale9Ld6VHDQ== alice@laptop';
+
+const SCENES = {
+  generate: {
+    eyebrow: 'Offline key generation',
+    title: 'Generate SSH keys <em>in your browser</em>',
+    sub: 'RSA, Ed25519 and ECDSA, with an optional passphrase. Keys are created on your device and never sent anywhere.',
+    chips: ['RSA · Ed25519 · ECDSA', 'Passphrase protection', '100% offline'],
+  },
+  'fido-builder': {
+    eyebrow: 'Hardware security keys',
+    title: 'Build commands for <em>FIDO security keys</em>',
+    sub: 'Choose ed25519-sk or ecdsa-sk, PIN and touch options — get the ssh-keygen command and a matching authorized_keys line.',
+    chips: ['ed25519-sk / ecdsa-sk', 'authorized_keys', 'Git signing'],
+  },
+  'fido-inspect': {
+    eyebrow: 'Key inspection',
+    title: 'See what’s inside a <em>FIDO key</em>',
+    sub: 'Fingerprint, application and touch / PIN / resident flags — even from passphrase-protected key files.',
+    chips: ['SHA256 fingerprint', 'Touch & PIN flags', 'Encrypted files'],
+  },
+  convert: {
+    eyebrow: 'Format conversion',
+    title: 'Convert between <em>key formats</em>',
+    sub: 'OpenSSH, PKCS#1, PKCS#8 and PuTTY PPK. Add, change or remove a passphrase in the same step.',
+    chips: ['OpenSSH', 'PKCS#1 / PKCS#8', 'PuTTY PPK'],
+  },
+  'inspect-cert': {
+    eyebrow: 'Certificates',
+    title: 'Inspect <em>SSH certificates</em>',
+    sub: 'Key ID, principals, validity window, extensions and critical options at a glance.',
+    chips: ['Principals', 'Validity', 'Extensions'],
+  },
+};
+
+const params = new URLSearchParams(location.search);
+const sceneId = params.get('scene') || 'generate';
+const scene = SCENES[sceneId];
+document.getElementById('caption').innerHTML = `
+  <div class="brand"><div class="brand-icon"><img src="../../logo.png" alt=""></div><div class="brand-name"><span>SSH Keytool</span></div></div>
+  <div class="eyebrow">${scene.eyebrow}</div>
+  <h1>${scene.title}</h1>
+  <p class="sub">${scene.sub}</p>
+  <div class="chips">${scene.chips.map(c => `<span class="chip">${c}</span>`).join('')}</div>`;
+
+// ---- drive the real app inside the iframe (same origin) ----
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function waitFor(fn, ms = 15000) {
+  const t0 = performance.now();
+  while (performance.now() - t0 < ms) { const v = fn(); if (v) return v; await sleep(30); }
+  throw new Error('waitFor timeout');
+}
+
+function helpers(doc, win) {
+  const button = t => [...doc.querySelectorAll('button')].filter(b => b.textContent.trim() === t && b.offsetParent !== null).pop();
+  const visible = sel => [...doc.querySelectorAll(sel)].filter(e => e.offsetParent !== null);
+  const setValue = (el, value) => {
+    const proto = el.tagName === 'TEXTAREA' ? win.HTMLTextAreaElement.prototype
+      : el.tagName === 'SELECT' ? win.HTMLSelectElement.prototype : win.HTMLInputElement.prototype;
+    Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, value);
+    el.dispatchEvent(new win.Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
+  };
+  const scrollTo = el => el.getBoundingClientRect().top + win.scrollY;
+  return { button, visible, setValue, scrollTo };
+}
+
+async function generateEd25519(doc, win) {
+  const { button, setValue } = helpers(doc, win);
+  button('Generate').click(); await sleep(60);
+  setValue(doc.querySelector('select'), 'ed25519'); await sleep(60);
+  button('Generate Key Pair').click();
+  await waitFor(() => doc.querySelectorAll('textarea[readonly]').length === 2);
+  return doc.querySelectorAll('textarea[readonly]')[0].value;
+}
+
+const setups = {
+  async generate(doc, win) {
+    await generateEd25519(doc, win);
+    return 0;
+  },
+  async 'fido-builder'(doc, win) {
+    const { button, visible, setValue } = helpers(doc, win);
+    button('FIDO').click(); await sleep(60);
+    const labelInput = text => [...doc.querySelectorAll('label')].find(l => l.textContent.includes(text)).querySelector('input');
+    labelInput('Require PIN').click(); await sleep(30);
+    const byPlaceholder = p => visible('input:not([type=checkbox])').find(i => (i.placeholder || '').startsWith(p));
+    setValue(byPlaceholder('ssh:'), 'ssh:work');
+    setValue(byPlaceholder('user@host'), 'alice@laptop');
+    await sleep(60);
+    return helpers(doc, win).scrollTo(button('Generate').parentElement) - 14;
+  },
+  async 'fido-inspect'(doc, win) {
+    const { button, visible, setValue, scrollTo } = helpers(doc, win);
+    button('FIDO').click(); await sleep(60);
+    button('Inspect Key').click(); await sleep(60);
+    setValue(visible('textarea')[0], DEMO_FIDO_KEY); await sleep(80);
+    setValue(visible('input[type=password]')[0], DEMO_FIDO_PASSPHRASE); await sleep(40);
+    button('Unlock').click();
+    await waitFor(() => doc.body.innerText.includes('Key handle'));
+    await sleep(60);
+    // Start at the Command Builder / Inspect Key toggle so the context stays visible.
+    return scrollTo(button('Inspect Key').parentElement) - 14;
+  },
+  async convert(doc, win) {
+    const { button, visible, setValue, scrollTo } = helpers(doc, win);
+    const privateKey = await generateEd25519(doc, win);
+    button('Convert').click(); await sleep(60);
+    setValue(doc.querySelector('textarea'), privateKey); await sleep(60);
+    setValue(doc.querySelectorAll('select')[0], 'pkcs8'); await sleep(60);
+    setValue(visible('input[type=password]')[1], 'demo-passphrase'); await sleep(60);
+    button('Convert Key').click();
+    await waitFor(() => doc.querySelector('textarea[readonly]'));
+    await sleep(60);
+    // This view is too short to scroll the header fully out, so keep it whole.
+    return 0;
+  },
+  async 'inspect-cert'(doc, win) {
+    const { button, setValue } = helpers(doc, win);
+    button('Cert').click(); await sleep(60);
+    setValue(doc.querySelector('textarea'), DEMO_CERT);
+    await waitFor(() => doc.body.innerText.includes('Principals'));
+    await sleep(60);
+    return 0;
+  },
+};
+
+const frame = document.getElementById('app');
+async function start() {
+  const win = frame.contentWindow;
+  const doc = frame.contentDocument;
+  // Real popups scroll the whole document; hide the scrollbar so the shot stays clean.
+  const style = doc.createElement('style');
+  style.textContent = 'html { scrollbar-width: none; } ::-webkit-scrollbar { display: none; }';
+  doc.head.appendChild(style);
+  await waitFor(() => doc.querySelector('button'));
+  const scrollY = await setups[sceneId](doc, win);
+  win.scrollTo(0, Math.max(0, scrollY));
+  await document.fonts.ready;
+  await sleep(150);
+  document.body.dataset.ready = 'true';
+}
+// The render-blocking font stylesheet can delay this script until after the
+// iframe has already loaded, so don't rely on catching its load event.
+const frameLoaded = () => frame.contentWindow.location.href.endsWith('/app/index.html')
+  && frame.contentDocument.readyState === 'complete';
+if (frameLoaded()) start(); else frame.addEventListener('load', start, { once: true });
+</script>
+</body>
+</html>
