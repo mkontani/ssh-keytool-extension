@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { generateKeyPair, derivePublicKey, parseCertificate, type CertificateInfo } from './utils/ssh';
 import type { KeyType } from './utils/ssh';
 import { ConvertTab } from './components/ConvertTab';
+import { FidoTab } from './components/FidoTab';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'generate' | 'derive' | 'inspect' | 'convert'>('generate');
+  const [activeTab, setActiveTab] = useState<'generate' | 'derive' | 'inspect' | 'convert' | 'fido'>('generate');
 
   // Generation State
   const [keyType, setKeyType] = useState<KeyType>('rsa');
@@ -131,6 +132,13 @@ function App() {
             }`}
         >
           Convert
+        </button>
+        <button
+          onClick={() => setActiveTab('fido')}
+          className={`flex-1 py-1 px-3 rounded text-sm font-medium transition-colors ${activeTab === 'fido' ? 'bg-gray-700 text-white shadow' : 'text-gray-400 hover:text-white'
+            }`}
+        >
+          FIDO
         </button>
       </div>
 
@@ -281,6 +289,8 @@ function App() {
         )}
 
         {activeTab === 'convert' && <ConvertTab />}
+
+        {activeTab === 'fido' && <FidoTab />}
 
         {activeTab === 'inspect' && (
           <div className="flex flex-col gap-4">

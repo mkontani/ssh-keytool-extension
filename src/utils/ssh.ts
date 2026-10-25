@@ -1,5 +1,6 @@
 import sshpk from 'sshpk';
 import { parsePpk, encodePpk } from './ppk';
+import { isFidoPrivateKey, deriveFidoPublicKey } from './fido';
 import { randomBytes, pbkdf2Sync, createCipheriv } from 'crypto';
 
 // ---------------------------------------------------------------------------
@@ -353,6 +354,10 @@ export const generateKeyPair = async (
 };
 
 export const derivePublicKey = (privateKeyPEM: string, passphrase?: string): string => {
+    // sshpk cannot parse sk-* (FIDO) keys; they have their own parser with specific errors.
+    if (isFidoPrivateKey(privateKeyPEM)) {
+        return deriveFidoPublicKey(privateKeyPEM, passphrase);
+    }
     try {
         const key = sshpk.parsePrivateKey(privateKeyPEM, 'auto', passphrase ? { passphrase } : undefined);
         return formatPublicKey(key);
