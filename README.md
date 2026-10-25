@@ -59,6 +59,7 @@ Notes:
 - PKCS#1 is RSA-only — ED25519 / ECDSA keys cannot be exported as PKCS#1.
 - Choosing PKCS#1 + a passphrase auto-upgrades the output to PKCS#8 (encrypted PKCS#1 is non-standard); a note is shown.
 - PuTTY PPK v2 uses a weak SHA-1-based KDF without salt; a warning is shown when encrypting to PPK. Prefer OpenSSH or PKCS#8 when interop allows.
+- FIDO (`sk-`) keys cannot be converted: the file is only a handle for the security key and exists solely in OpenSSH format. To change its passphrase, run `ssh-keygen -p -f <file>`.
 
 ### FIDO Security Keys
 FIDO keys (`ed25519-sk` / `ecdsa-sk`, OpenSSH 8.2+) are created on a hardware security key such as a YubiKey, so the extension does not generate them. It helps you build the right command and inspect the result.
