@@ -7,10 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "vite-node scripts/verify.ts && vite-node scripts/verify_cert.ts && vite-node scripts/verify_convert.ts",
+    "test": "vite-node scripts/verify.ts && vite-node scripts/verify_cert.ts && vite-node scripts/verify_convert.ts && vite-node scripts/verify_fido.ts",
     "preview": "vite preview"
   },
   "dependencies": {
+    "bcrypt-pbkdf": "^1.0.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "sshpk": "^1.18.0"
