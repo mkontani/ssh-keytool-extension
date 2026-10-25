@@ -11,9 +11,11 @@ A Chrome Extension (Manifest V3) that generates SSH key pairs, derives public ke
 - `npm run dev` — Vite dev server for UI iteration in the browser (no Chrome extension reload required).
 - `npm run build` — `tsc -b` then `vite build`, producing the `dist/` directory that is loaded as the unpacked Chrome extension.
 - `npm run lint` — ESLint over `**/*.{ts,tsx}` (flat config, with `dist` ignored globally).
-- `npm test` — Runs both verification scripts via `vite-node`:
+- `npm test` — Runs the verification scripts via `vite-node`:
   - `scripts/verify.ts` — exercises `generateKeyPair` for RSA/ED25519/ECDSA plus `derivePublicKey` round-trip.
   - `scripts/verify_cert.ts` — exercises `parseCertificate` against a hard-coded OpenSSH cert with multiple principals.
+  - `scripts/verify_convert.ts` — key format conversion (OpenSSH / PKCS#1 / PKCS#8 / PPK).
+  - `scripts/verify_fido.ts` — FIDO key parsing and the command/snippet builder, against fixtures in `scripts/fixtures/fido.ts` (OpenSSH test vectors + `ssh-keygen`-generated variants).
 - Run a single verification script: `npx vite-node scripts/verify_cert.ts`.
 - `npm run preview` — Serve the built `dist/` for sanity-checking the production bundle.
 
@@ -32,9 +34,15 @@ This single module is the entire domain logic. Three exported entry points: `gen
 - **Certificate parsing relies on undocumented `sshpk` shape.** `@types/sshpk` does not expose `subjects`, `signatures.openssh.exts`, etc., so `parseCertificate` casts through `unknown` to a hand-written interface. Multiple principals are extracted via three fallback paths (`subject.uid`, `subject.components` of `name === 'uid'`, `subject.principals`) and then deduplicated — `sshpk` versions differ in which path is populated, so all three must remain.
 - Passphrase-encrypted private keys are produced through `key.toString('openssh', { passphrase })` and parsed back via `sshpk.parsePrivateKey(pem, 'auto', { passphrase })`.
 
+### FIDO keys (`src/utils/fido.ts`, `src/utils/fidoCommands.ts`)
+
+- **`sshpk` cannot parse `sk-*` keys at all**, so `fido.ts` reads the SSH wire format itself (`WireReader`) and decrypts `openssh-key-v1` files with `bcrypt-pbkdf` + Node `crypto` (AES-CTR/CBC only). `derivePublicKey` routes FIDO private keys there via `isFidoPrivateKey` before trying `sshpk`.
+- Encrypted FIDO files expose their public blob without a passphrase; `details` (flags, key handle) and the comment are `null`/empty until decrypted. The UI parses on every keystroke without a passphrase (no KDF cost) and only runs bcrypt on **Unlock**.
+- Keys cannot be *generated* in the browser (WebAuthn cannot use OpenSSH's `ssh:` RP ID), so `fidoCommands.ts` only builds `ssh-keygen` commands and config snippets. Everything user-entered goes through `shellQuote`; keep it that way.
+
 ### UI (`src/App.tsx`)
 
-Single-file, ~360 LOC component with three tabs (`generate` / `derive` / `inspect`) held in local `useState`. The Generate flow wraps the async key generation in a `setTimeout(..., 50)` so React commits the "Generating..." loading state before the synchronous portion of RSA key generation blocks the main thread — keep that delay if you refactor. The Inspect tab parses on every keystroke and swallows errors into an `inspectError` state rather than throwing.
+~370 LOC component with tabs `generate` / `derive` / `inspect` held in local `useState`; `convert` and `fido` are delegated to `src/components/ConvertTab.tsx` and `src/components/FidoTab.tsx`. The Generate flow wraps the async key generation in a `setTimeout(..., 50)` so React commits the "Generating..." loading state before the synchronous portion of RSA key generation blocks the main thread — keep that delay if you refactor. The Inspect tab parses on every keystroke and swallows errors into an `inspectError` state rather than throwing.
 
 ### Testing model
 
