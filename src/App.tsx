@@ -114,17 +114,19 @@ function App() {
         </button>
         <button
           onClick={() => setActiveTab('derive')}
+          title="Derive Public Key"
           className={`flex-1 py-1 px-3 rounded text-sm font-medium transition-colors ${activeTab === 'derive' ? 'bg-gray-700 text-white shadow' : 'text-gray-400 hover:text-white'
             }`}
         >
-          Derive Public Key
+          Derive
         </button>
         <button
           onClick={() => setActiveTab('inspect')}
+          title="Inspect SSH Certificate"
           className={`flex-1 py-1 px-3 rounded text-sm font-medium transition-colors ${activeTab === 'inspect' ? 'bg-gray-700 text-white shadow' : 'text-gray-400 hover:text-white'
             }`}
         >
-          Inspect Cert
+          Cert
         </button>
         <button
           onClick={() => setActiveTab('convert')}
