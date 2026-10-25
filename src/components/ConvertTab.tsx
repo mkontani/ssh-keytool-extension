@@ -2,12 +2,15 @@ import { useState } from 'react';
 import {
     detectPrivateKeyFormat,
     convertPrivateKey,
+    FIDO_CONVERT_UNSUPPORTED_MESSAGE,
     type PrivateKeyFormat,
 } from '../utils/ssh';
+import { isFidoPrivateKey } from '../utils/fido';
 
 interface ConvertState {
     input: string;
     detectedFormat: PrivateKeyFormat | 'unknown';
+    isFidoKey: boolean;
     targetFormat: PrivateKeyFormat;
     sourcePassphrase: string;
     targetPassphrase: string;
@@ -40,6 +43,7 @@ export function ConvertTab() {
     const [state, setState] = useState<ConvertState>({
         input: '',
         detectedFormat: 'unknown',
+        isFidoKey: false,
         targetFormat: 'openssh',
         sourcePassphrase: '',
         targetPassphrase: '',
@@ -61,10 +65,13 @@ export function ConvertTab() {
     const handleInputChange = (value: string) => {
         const clipped = value.length > MAX_INPUT_BYTES ? value.slice(0, MAX_INPUT_BYTES) : value;
         const detectedFormat = detectPrivateKeyFormat(clipped);
+        // Header-only check (no decryption), so it is cheap enough for every keystroke.
+        const isFidoKey = detectedFormat === 'openssh' && isFidoPrivateKey(clipped);
         setState(prev => ({
             ...prev,
             input: clipped,
             detectedFormat,
+            isFidoKey,
             output: null,
             outputFormat: null,
             error: null,
@@ -105,7 +112,7 @@ export function ConvertTab() {
         }, 50);
     };
 
-    const { input, detectedFormat, targetFormat, sourcePassphrase, targetPassphrase, output, outputFormat, notes, error, isWorking } = state;
+    const { input, detectedFormat, isFidoKey, targetFormat, sourcePassphrase, targetPassphrase, output, outputFormat, notes, error, isWorking } = state;
 
     return (
         <div className="flex flex-col gap-4">
@@ -115,7 +122,7 @@ export function ConvertTab() {
                     <label className="text-xs font-medium text-gray-400">Private Key</label>
                     {input.trim() && (
                         <span className={`text-xs px-2 py-0.5 rounded border font-mono ${FORMAT_BADGE_COLORS[detectedFormat]}`}>
-                            {FORMAT_LABELS[detectedFormat]}
+                            {FORMAT_LABELS[detectedFormat]}{isFidoKey && ' · FIDO'}
                         </span>
                     )}
                 </div>
@@ -127,6 +134,12 @@ export function ConvertTab() {
                     placeholder="Paste private key (OpenSSH, PKCS#1, PKCS#8, or PuTTY PPK)..."
                 />
             </div>
+
+            {isFidoKey && (
+                <div className="p-3 bg-amber-900/40 border border-amber-800/60 rounded text-amber-200 text-xs">
+                    {FIDO_CONVERT_UNSUPPORTED_MESSAGE}
+                </div>
+            )}
 
             {/* Source passphrase */}
             <div className="flex flex-col gap-1">
@@ -180,7 +193,7 @@ export function ConvertTab() {
             {/* Convert button */}
             <button
                 onClick={handleConvert}
-                disabled={isWorking || !input.trim()}
+                disabled={isWorking || !input.trim() || isFidoKey}
                 className="w-full py-2 bg-green-700 hover:bg-green-600 rounded font-medium text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100"
             >
                 {isWorking ? 'Converting...' : 'Convert Key'}
