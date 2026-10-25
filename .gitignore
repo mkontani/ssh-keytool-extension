@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Store asset generator: local copy of dist/ (see assets/webstore/src/README.md)
+assets/webstore/src/app/
