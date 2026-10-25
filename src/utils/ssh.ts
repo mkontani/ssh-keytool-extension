@@ -165,8 +165,19 @@ export const detectPrivateKeyFormat = (input: string): PrivateKeyFormat | 'unkno
     return 'unknown';
 };
 
+/** Shown instead of sshpk's "Unknown algorithm sk-..." error when a FIDO key is pasted into Convert. */
+export const FIDO_CONVERT_UNSUPPORTED_MESSAGE =
+    'FIDO (sk-) keys cannot be converted: the file only holds a handle for your security key, ' +
+    'and OpenSSH is the only format for it. To add, change or remove its passphrase, run ' +
+    '"ssh-keygen -p -f <file>". To view the key, use the FIDO tab.';
+
 export const convertPrivateKey = (input: string, opts: ConvertOptions): ConvertResult => {
     const { targetFormat, sourcePassphrase, targetPassphrase, comment } = opts;
+
+    // Checked before sshpk so encrypted FIDO keys don't surface a misleading "no passphrase" error.
+    if (isFidoPrivateKey(input)) {
+        throw new Error(FIDO_CONVERT_UNSUPPORTED_MESSAGE);
+    }
 
     // Parse the source key
     let key: sshpk.PrivateKey;

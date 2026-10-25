@@ -6,7 +6,13 @@
  */
 
 import assert from 'assert';
-import { generateKeyPair, derivePublicKey } from '../src/utils/ssh';
+import {
+    generateKeyPair,
+    derivePublicKey,
+    convertPrivateKey,
+    changePassphrase,
+    FIDO_CONVERT_UNSUPPORTED_MESSAGE,
+} from '../src/utils/ssh';
 import {
     parseFidoPublicKey,
     parseFidoPrivateKey,
@@ -340,6 +346,40 @@ test('derivePublicKey: FIDO private key (encrypted) with passphrase', () => {
 
 test('derivePublicKey: FIDO private key (encrypted) without passphrase asks for it', () => {
     assert.throws(() => derivePublicKey(ED25519_SK1_AES256_CTR), /passphrase/i);
+});
+
+// ==========================================================================
+// Convert tab: FIDO keys are rejected with guidance instead of an sshpk error
+// ==========================================================================
+
+test('convertPrivateKey: FIDO keys are rejected with ssh-keygen -p guidance for every target', () => {
+    for (const targetFormat of ['openssh', 'pkcs1', 'pkcs8', 'ppk'] as const) {
+        assert.throws(
+            () => convertPrivateKey(ECDSA_SK1, { targetFormat, targetPassphrase: 'new-pass' }),
+            (e: Error) => e.message === FIDO_CONVERT_UNSUPPORTED_MESSAGE,
+            `target ${targetFormat}`,
+        );
+    }
+});
+
+test('convertPrivateKey: encrypted FIDO keys are recognised without the passphrase', () => {
+    assert.throws(
+        () => convertPrivateKey(ED25519_SK1_AES256_CTR, { targetFormat: 'openssh' }),
+        (e: Error) => e.message === FIDO_CONVERT_UNSUPPORTED_MESSAGE,
+    );
+});
+
+test('changePassphrase: FIDO keys point to ssh-keygen -p', () => {
+    assert.throws(
+        () => changePassphrase(ED25519_SK1_AES256_CTR, FIDO_TEST_PASSPHRASE, 'new-pass'),
+        /ssh-keygen -p/,
+    );
+});
+
+test('FIDO_CONVERT_UNSUPPORTED_MESSAGE: explains why and what to do instead', () => {
+    assert.match(FIDO_CONVERT_UNSUPPORTED_MESSAGE, /OpenSSH/);
+    assert.match(FIDO_CONVERT_UNSUPPORTED_MESSAGE, /ssh-keygen -p -f/);
+    assert.match(FIDO_CONVERT_UNSUPPORTED_MESSAGE, /FIDO tab/);
 });
 
 // ==========================================================================
